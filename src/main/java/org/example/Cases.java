@@ -9,6 +9,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import org.dataloader.DataLoader;
+import org.dataloader.DataLoaderOptions;
 import org.dataloader.DataLoaderRegistry;
 import org.example.dto.Person;
 import org.reactivestreams.Publisher;
@@ -21,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 
 @SuppressWarnings({"Convert2MethodRef", "UnstableApiUsage"})
 public class Cases {
+    public  static final int BATCH_SIZE = 10;
     public static final String ENRICHMENT_DATA_LOADER = "enrichmentDataLoader";
     private static final DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();
 
@@ -35,7 +38,7 @@ public class Cases {
                     new SchemaParser()
                             .parse(Resources.toString(Resources.getResource("schema.graphqls"), StandardCharsets.UTF_8));
 
-            DataFetcher<CompletableFuture<List<Person>>> listDataFetcher =
+            DataFetcher<CompletableFuture<Stream<Person>>> streamDataFetcher =
                     dataFetchingEnvironment ->
                             Source.getPersonList();
 
@@ -47,15 +50,20 @@ public class Cases {
                     dataFetchingEnvironment ->
                             Source.getPersonFluxWindowed();
 
+            DataLoaderOptions dataLoaderOptions = DataLoaderOptions.newOptions().setBatchingEnabled(true).setMaxBatchSize(BATCH_SIZE);
             DataLoader<Integer, String> enrichmentStringBatchLoader =
                     DataLoader.newDataLoader(keys ->
-                            enrichmentService.getEnrichmentValuesInBulk(keys));
+                            enrichmentService.getEnrichmentValuesInBulk(keys), dataLoaderOptions);
 
             dataLoaderRegistry.register(ENRICHMENT_DATA_LOADER, enrichmentStringBatchLoader);
 
             var runtimeWiring = newRuntimeWiring()
                     .type("Query", builder ->
-                            builder.dataFetcher("list", listDataFetcher))
+                            builder.dataFetcher("stream", streamDataFetcher))
+                    .type("Query", builder ->
+                            builder.dataFetcher("flux", fluxDataPublisher))
+                    .type("Subscription", builder ->
+                            builder.dataFetcher("stream", streamDataFetcher))
                     .type("Subscription", builder ->
                             builder.dataFetcher("flux", fluxDataPublisher))
                     .type("Subscription", builder ->
@@ -79,10 +87,10 @@ public class Cases {
     }
 
 
-    public static void queryingForList(EnrichmentService enrichmentService) {
+    public static void queryingForStream(EnrichmentService enrichmentService) {
         var executionResult = getGraphQl(enrichmentService).execute(ExecutionInput.newExecutionInput()
-                .query("query list {\n" +
-                        "    list {\n" +
+                .query("query stream {\n" +
+                        "    stream {\n" +
                         "        id\n" +
                         "        enrichedString\n" +
                         "    }\n" +
@@ -92,6 +100,39 @@ public class Cases {
 
         // I don't really care about the result, all that matters is how many times the enrichmentService was called
         // but you can have a look at executionResult.getData()
+    }
+
+    public static void queryingForFlux(EnrichmentService enrichmentService) {
+        var executionResult = getGraphQl(enrichmentService).execute(ExecutionInput.newExecutionInput()
+                .query("query flux {\n" +
+                        "    flux {\n" +
+                        "        id\n" +
+                        "        enrichedString\n" +
+                        "    }\n" +
+                        "}")
+                .dataLoaderRegistry(dataLoaderRegistry)
+                .build());
+
+        Flux.from(executionResult.getData())
+                .collectList()
+                .block();
+
+        // of course I wouldn't block, but instead return the flux as server-sent events.
+        // again, I don't care about the data, only how many times the enrichmentService was called, which I assert in the test
+    }
+
+    public static void subscribingToStream(EnrichmentService enrichmentService) {
+        var executionResult = getGraphQl(enrichmentService).execute(ExecutionInput.newExecutionInput()
+                .query("subscription stream {\n" +
+                        "    stream {\n" +
+                        "        id\n" +
+                        "        enrichedString\n" +
+                        "    }\n" +
+                        "}")
+                .dataLoaderRegistry(dataLoaderRegistry)
+                .build());
+
+        return;
     }
 
     public static void subscribingToFlux(EnrichmentService enrichmentService) {

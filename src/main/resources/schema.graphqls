@@ -9,10 +9,12 @@ type Person {
 }
 
 type Query {
-    list: [Person]
+    stream: [Person]
+    flux: [Person]
 }
 
 type Subscription {
+    stream: Person
     flux : Person
     fluxWindowed : [Person]
 }

@@ -9,11 +9,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CaseTest {
     @Test
-    public void should_batch_when_queryingForList() {
+    public void should_batch_when_queryingForStream() {
         var enrichmentService = new EnrichmentService();
-        Cases.queryingForList(enrichmentService);
+        Cases.queryingForStream(enrichmentService);
 
-        assertEquals(1, enrichmentService.getNumberOfTimesCalled());
+        assertEquals(Source.TOTAL_NUMBER_OF_ITEMS_IN_FLUX / Cases.BATCH_SIZE, enrichmentService.getNumberOfTimesCalled());
+    }
+
+    @Test
+    public void should_batch_when_queryingForFlux() {
+        var enrichmentService = new EnrichmentService();
+        Cases.queryingForFlux(enrichmentService);
+
+        assertEquals(Source.TOTAL_NUMBER_OF_ITEMS_IN_FLUX / Cases.BATCH_SIZE, enrichmentService.getNumberOfTimesCalled());
+    }
+
+    @Test
+    public void should_batch_when_subscribingToStream() {
+        var enrichmentService = new EnrichmentService();
+        Cases.subscribingToStream(enrichmentService);
+
+        assertEquals(Source.TOTAL_NUMBER_OF_ITEMS_IN_FLUX / Cases.BATCH_SIZE, enrichmentService.getNumberOfTimesCalled());
     }
 
     @Test
