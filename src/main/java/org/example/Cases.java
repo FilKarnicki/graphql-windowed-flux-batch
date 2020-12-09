@@ -17,17 +17,21 @@ import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+
 import java.util.stream.Stream;
+
+import java.util.stream.IntStream;
+
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 
 @SuppressWarnings({"Convert2MethodRef", "UnstableApiUsage"})
 public class Cases {
+
     public  static final int BATCH_SIZE = 10;
     public static final String ENRICHMENT_DATA_LOADER = "enrichmentDataLoader";
     private static final DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();

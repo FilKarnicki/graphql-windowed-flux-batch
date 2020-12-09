@@ -13,6 +13,7 @@ public class CaseTest {
         var enrichmentService = new EnrichmentService();
         Cases.queryingForStream(enrichmentService);
 
+
         assertEquals(Source.TOTAL_NUMBER_OF_ITEMS_IN_FLUX / Cases.BATCH_SIZE, enrichmentService.getNumberOfTimesCalled());
     }
 
