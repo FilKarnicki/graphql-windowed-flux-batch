@@ -24,7 +24,7 @@ public class Source {
      */
     public static CompletableFuture<Stream<Person>> getPersonList() {
         return CompletableFuture.supplyAsync(() ->
-                        IntStream.range(1, TOTAL_NUMBER_OF_ITEMS_IN_FLUX).boxed().map(Person::new),
+                        IntStream.range(0, TOTAL_NUMBER_OF_ITEMS_IN_FLUX).boxed().map(Person::new),
                 CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
     }
 
